@@ -64,13 +64,52 @@ class MakeCodeReadyToUse extends Command
 			return 255;
 		}
 		
+		$this->buildCodeRegistration($dstBaseDir.'app/code/');
+		
 		$this->logger->info('Code is now ready to use !');
 
         return 0;
     }
 	
 	/**
-     * @param InputInterface $dir
+     * @param $dir
+     * @return void
+     */
+	private function buildCodeRegistration($dir)
+	{
+		$companies = array_diff(scandir($dir), ['.','..']);
+		
+		foreach ( $companies as $company ){
+			$modules = array_diff(scandir($dir.$company), ['.','..']);
+			
+			foreach ( $modules as $module ){
+				$module_name = $company."_".$module;
+				if ( !file_put_contents(
+						$dir.$company.'/'.$module.'/registration.php',
+						"<?php\n".
+						"/**\n".
+						" * @author Alexandre GUASCH\n".
+						" * @copyright Copyright (c) 2018 Cordon DS2I\n".
+						" * @package ".$module_name."\n".
+						" */\n".
+						"\Magento\Framework\Component\ComponentRegistrar::register(\n".
+						"	\Magento\Framework\Component\ComponentRegistrar::MODULE,\n".
+						"	'".$module_name."',\n".
+						"	__DIR__\n".
+						");"
+					  )
+				){
+					$this->logger->error('Could not register module ' . $module_name . ' : check writing permissions');
+					continue;
+				}
+				
+				$this->logger->info($module_name." : registration code generated");
+			}
+		}
+	}
+	
+	/**
+     * @param $dir
      * @return boolean
      */
 	private function crawl($dir)
